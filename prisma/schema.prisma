@@ -1,0 +1,220 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum CivilStatus {
+  SINGLE
+  MARRIED
+  WIDOWED
+  SEPARATED
+  DIVORCED
+}
+
+enum ClassList {
+  KINDER1
+  KINDER2
+  GRADE1
+  GRADE2
+  GRADE3
+  GRADE4
+  GRADE5
+  GRADE6
+  GRADE7
+  GRADE8
+  GRADE9
+  GRADE10
+}
+
+enum PaymentFeeType {
+  TUITION
+  MISCELLANEOUS
+  BOOKS
+  UNIFORM
+  FIELD_TRIP
+  SCHOOL_SUPPLIES
+  SCHOOL_SERVICE
+  OTHERS
+}
+
+enum ModeOfPayment {
+  CASH
+  CHECK
+  CREDIT_CARD
+  GCASH
+  PAYMAYA
+  ONLINE_BANKING
+}
+
+enum PaymentStatus {
+  PAID
+  UNPAID
+  PARTIAL
+}
+
+enum PaymentFrequency {
+  MONTHLY
+  QUARTERLY
+  SEMI_ANNUAL
+  ANNUAL
+}
+
+// Model for Teachers
+model Teachers {
+  id             String      @id @default(uuid())
+  email          String
+  teacher_number String      @unique
+  first_name     String
+  last_name      String
+  middle_name    String
+  birthday       String
+  gender         Gender
+  nationality    String
+  religion       String
+  civil_status   CivilStatus
+  address_line1  String
+  address_line2  String
+  city           String
+  zip_code       String
+  cell_number    String
+  imageUrl       String
+  SSS            String
+  PAGIBIG        String
+  PHILHEALTH     String
+  TIN            String
+  date_joined    DateTime
+  date_resigned  DateTime
+
+  Subjects Subjects[] @relation("TeacherToSubject")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Model for Students
+model Students {
+  id                String @id @default(uuid())
+  student_number    String @unique
+  first_name        String
+  last_name         String
+  middle_name       String
+  birthday          String
+  gender            Gender
+  nationality       String
+  religion          String
+  address_line1     String
+  address_line2     String
+  city              String
+  zip_code          String
+  cell_number       String
+  imageUrl          String
+  father_name       String
+  father_occupation String
+  mother_name       String
+  mother_occupation String
+  guardian_name     String
+  guardian_relation String
+  guardian_number   String
+  guarding_address  String
+
+  Payments Payments[] @relation("StudentToPayment")
+  Subjects Subjects[] @relation("StudentToSubject")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Model for Classes, Kinder to Grade 10
+// One to Many Relationship with Subjects
+model Classes {
+  id   String    @id @default(uuid())
+  name ClassList @unique
+
+  Subjects            Subjects[]            @relation("ClassToSubject")
+  PaymentFeeStructure PaymentFeeStructure[] @relation("ClassToPaymentFee")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Model for Subjects
+// Many to Many Relationship with Teachers and Students
+// Junction Table
+model Subjects {
+  id   String @id @default(uuid())
+  name String @unique
+
+  class    Classes[]  @relation("ClassToSubject")
+  teachers Teachers[] @relation("TeacherToSubject")
+  students Students[] @relation("StudentToSubject")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Model for Students Payments
+// Many to One Relationship with Students
+// TODO: Massive Refactor, test out the data models and the database design for all below this
+model Payments {
+  id     String   @id @default(uuid())
+  amount Float
+  date   DateTime
+
+  status    PaymentStatus    @default(UNPAID)
+  frequency PaymentFrequency
+  mode      ModeOfPayment
+
+  studentId String
+  student   Students @relation("StudentToPayment", fields: [studentId], references: [id])
+
+  paymentFeeStructureId String
+  PaymentFeeStrucutre   PaymentFee @relation(fields: [paymentFeeStructureId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Model for Hardcoded Payment Fees for each grade level
+// One to One Relationship with Classes
+model PaymentFeeStructure {
+  id String @id @default(uuid())
+
+  type   PaymentFeeType
+  amount Float
+
+  paymentId String
+
+  classId      String
+  Class        Classes     @relation("ClassToPaymentFee", fields: [classId], references: [id])
+  paymentFeeId String?
+  PaymentFee   PaymentFee? @relation(fields: [paymentFeeId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PaymentFee {
+  id String @id @default(uuid())
+
+  PaymentFeeStructure PaymentFeeStructure[]
+  Payments            Payments[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
