@@ -43,14 +43,21 @@ enum ClassList {
 }
 
 enum PaymentFeeType {
-  TUITION
-  MISCELLANEOUS
+  TUITION_FEE
+  MISCELLANEOUS_FEE
   BOOKS
   UNIFORM
   FIELD_TRIP
   SCHOOL_SUPPLIES
   SCHOOL_SERVICE
   OTHERS
+  SCHOOL_ID
+  FOUNDATION_TSHIRT
+  GRADUATION_FEE
+  RECOGNITION_FEE
+  FORM_137
+  CERTIFICATIONS
+  ENTRANCE_FEE
 }
 
 enum ModeOfPayment {
@@ -76,65 +83,68 @@ enum PaymentFrequency {
 }
 
 // Model for Teachers
+// A Teacher can teach multiple subjects
 model Teachers {
   id             String      @id @default(uuid())
   email          String
   teacher_number String      @unique
   first_name     String
   last_name      String
-  middle_name    String
-  birthday       String
+  middle_name    String?
+  birthday       DateTime    @default("2000-01-01T00:00:00Z")
   gender         Gender
   nationality    String
   religion       String
   civil_status   CivilStatus
   address_line1  String
-  address_line2  String
+  address_line2  String?
   city           String
   zip_code       String
   cell_number    String
-  imageUrl       String
-  SSS            String
-  PAGIBIG        String
-  PHILHEALTH     String
-  TIN            String
+  imageUrl       String?
+  SSS            String?
+  PAGIBIG        String?
+  PHILHEALTH     String?
+  TIN            String?
   date_joined    DateTime
-  date_resigned  DateTime
+  date_resigned  DateTime?
 
-  Subjects Subjects[] @relation("TeacherToSubject")
+  subjects Subjects[] @relation("TeacherToSubject")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 // Model for Students
+// A Student can have multiple payments, a student can only be part of one class
 model Students {
-  id                String @id @default(uuid())
-  student_number    String @unique
+  id                String   @id @default(uuid())
+  student_number    String   @unique
   first_name        String
   last_name         String
-  middle_name       String
-  birthday          String
-  gender            Gender
+  middle_name       String?
+  birthday          DateTime @default("2000-01-01T00:00:00Z")
+  gender            Gender   @default(MALE)
   nationality       String
   religion          String
   address_line1     String
-  address_line2     String
+  address_line2     String?
   city              String
   zip_code          String
   cell_number       String
-  imageUrl          String
+  imageUrl          String?
   father_name       String
-  father_occupation String
+  father_occupation String?
   mother_name       String
-  mother_occupation String
-  guardian_name     String
-  guardian_relation String
-  guardian_number   String
-  guarding_address  String
+  mother_occupation String?
+  guardian_name     String?
+  guardian_relation String?
+  guardian_number   String?
+  guardian_address  String?
 
-  Payments Payments[] @relation("StudentToPayment")
-  Subjects Subjects[] @relation("StudentToSubject")
+  Payment Payment[]
+  classId String
+  Classes Classes   @relation("StudentToClass", fields: [classId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -142,12 +152,16 @@ model Students {
 
 // Model for Classes, Kinder to Grade 10
 // One to Many Relationship with Subjects
+// One to One Relationship iwth a payment fee structure payment fee
 model Classes {
   id   String    @id @default(uuid())
   name ClassList @unique
 
-  Subjects            Subjects[]            @relation("ClassToSubject")
-  PaymentFeeStructure PaymentFeeStructure[] @relation("ClassToPaymentFee")
+  Subjects Subjects[] @relation("ClassToSubject")
+
+  paymentFeeStructurePaymentFeeId String                @unique
+  PaymentFeeStructure             PaymentFeeStructure[]
+  Students                        Students[]            @relation("StudentToClass")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -162,7 +176,6 @@ model Subjects {
 
   class    Classes[]  @relation("ClassToSubject")
   teachers Teachers[] @relation("TeacherToSubject")
-  students Students[] @relation("StudentToSubject")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -170,51 +183,51 @@ model Subjects {
 
 // Model for Students Payments
 // Many to One Relationship with Students
-// TODO: Massive Refactor, test out the data models and the database design for all below this
-model Payments {
-  id     String   @id @default(uuid())
-  amount Float
-  date   DateTime
 
+model Payment {
+  id        String           @id @default(uuid())
+  amount    Float
   status    PaymentStatus    @default(UNPAID)
   frequency PaymentFrequency
   mode      ModeOfPayment
-
   studentId String
-  student   Students @relation("StudentToPayment", fields: [studentId], references: [id])
 
-  paymentFeeStructureId String
-  PaymentFeeStrucutre   PaymentFee @relation(fields: [paymentFeeStructureId], references: [id])
+  Students   Students     @relation(fields: [studentId], references: [id])
+  PaymentFee PaymentFee[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  studentsId String?
 }
 
 // Model for Hardcoded Payment Fees for each grade level
-// One to One Relationship with Classes
-model PaymentFeeStructure {
-  id String @id @default(uuid())
+// Payment Fee Structure can have many payment fees
 
+// Model for Payment Fees
+// Payment Fee can be part of many payment fee structures
+model PaymentFee {
+  id     String         @id @default(uuid())
   type   PaymentFeeType
   amount Float
 
-  paymentId String
-
-  classId      String
-  Class        Classes     @relation("ClassToPaymentFee", fields: [classId], references: [id])
-  paymentFeeId String?
-  PaymentFee   PaymentFee? @relation(fields: [paymentFeeId], references: [id])
+  paymentId           String
+  Payment             Payment               @relation(fields: [paymentId], references: [id])
+  paymentFeeStructure PaymentFeeStructure[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model PaymentFee {
-  id String @id @default(uuid())
+// Join Table for Payment Fee Structure and Class
+// Many to Many Relationship with Payment Fee Structure and Payment Fee
+// Many to One Relationship with Classes
+model PaymentFeeStructure {
+  paymentFeeId String
+  PaymentFee   PaymentFee @relation(fields: [paymentFeeId], references: [id])
+  classId      String
+  Classes      Classes    @relation(fields: [classId], references: [id])
 
-  PaymentFeeStructure PaymentFeeStructure[]
-  Payments            Payments[]
+  compositeId String @unique @default(uuid())
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  @@id([paymentFeeId, classId])
 }
