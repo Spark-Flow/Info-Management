@@ -109,14 +109,12 @@ model Teachers {
   date_joined    DateTime
   date_resigned  DateTime?
 
-  subjects Subjects[] @relation("TeacherToSubject")
+  Subjects Subjects[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-// Model for Students
-// A Student can have multiple payments, a student can only be part of one class
 model Students {
   id                String   @id @default(uuid())
   student_number    String   @unique
@@ -142,47 +140,41 @@ model Students {
   guardian_number   String?
   guardian_address  String?
 
-  Payment Payment[]
-  classId String
-  Classes Classes   @relation("StudentToClass", fields: [classId], references: [id])
+  Payment   Payment[]
+  classesId String
+  Classes   Classes?  @relation(fields: [classesId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-// Model for Classes, Kinder to Grade 10
-// One to Many Relationship with Subjects
-// One to One Relationship iwth a payment fee structure payment fee
 model Classes {
   id   String    @id @default(uuid())
   name ClassList @unique
 
-  Subjects Subjects[] @relation("ClassToSubject")
+  Subjects Subjects[]
 
-  paymentFeeStructurePaymentFeeId String                @unique
-  PaymentFeeStructure             PaymentFeeStructure[]
-  Students                        Students[]            @relation("StudentToClass")
+  PaymentFeeStructureId String
+  PaymentFeeStructure   PaymentFeeStructure[]
+  Students              Students[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-// Model for Subjects
-// Many to Many Relationship with Teachers and Students
-// Junction Table
 model Subjects {
   id   String @id @default(uuid())
   name String @unique
 
-  class    Classes[]  @relation("ClassToSubject")
-  teachers Teachers[] @relation("TeacherToSubject")
+  classId String
+  Classes Classes @relation(fields: [classId], references: [id])
+
+  teachersId String   @unique
+  Teachers   Teachers @relation(fields: [teachersId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
-
-// Model for Students Payments
-// Many to One Relationship with Students
 
 model Payment {
   id        String           @id @default(uuid())
@@ -190,44 +182,30 @@ model Payment {
   status    PaymentStatus    @default(UNPAID)
   frequency PaymentFrequency
   mode      ModeOfPayment
+
   studentId String
-
-  Students   Students     @relation(fields: [studentId], references: [id])
-  PaymentFee PaymentFee[]
-
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  studentsId String?
-}
-
-// Model for Hardcoded Payment Fees for each grade level
-// Payment Fee Structure can have many payment fees
-
-// Model for Payment Fees
-// Payment Fee can be part of many payment fee structures
-model PaymentFee {
-  id     String         @id @default(uuid())
-  type   PaymentFeeType
-  amount Float
-
-  paymentId           String
-  Payment             Payment               @relation(fields: [paymentId], references: [id])
-  paymentFeeStructure PaymentFeeStructure[]
+  Student   Students @relation(fields: [studentId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-// Join Table for Payment Fee Structure and Class
-// Many to Many Relationship with Payment Fee Structure and Payment Fee
-// Many to One Relationship with Classes
+model PaymentFee {
+  id     String         @id @default(uuid())
+  type   PaymentFeeType
+  amount Float
+
+  paymentFeeStructureId String
+  PaymentFeeStructure   PaymentFeeStructure @relation(fields: [paymentFeeStructureId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model PaymentFeeStructure {
-  paymentFeeId String
-  PaymentFee   PaymentFee @relation(fields: [paymentFeeId], references: [id])
-  classId      String
-  Classes      Classes    @relation(fields: [classId], references: [id])
+  id String @id @default(uuid())
 
-  compositeId String @unique @default(uuid())
-
-  @@id([paymentFeeId, classId])
+  PaymentFee PaymentFee[]
+  classId    String
+  Classes    Classes      @relation(fields: [classId], references: [id])
 }
