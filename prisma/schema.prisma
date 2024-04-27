@@ -82,6 +82,19 @@ enum PaymentFrequency {
   ANNUAL
 }
 
+// Model for the academic session
+// This model will be assign to everything that is related to the academic year, like classes, students, teachers, etc. and will associate them to a certain year, like 2021-2022, add validation, and make sure to have only one active academic session at a given time, a session can be active if the current date is between the start and end date of the session. You can allow viewing of the previous academic sessions but only one session can be active at a time.
+// TODO:
+model AcademicSession {
+  id       String   @id @default(uuid())
+  start    DateTime
+  end      DateTime
+  isActive Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 // Model for Teachers
 // A Teacher can teach multiple subjects
 model Teachers {
@@ -123,7 +136,7 @@ model Students {
   last_name         String
   middle_name       String?
   birthday          DateTime @default("2000-01-01T00:00:00Z")
-  gender            Gender   @default(MALE)
+  gender            Gender
   nationality       String
   religion          String
   address_line1     String
@@ -142,8 +155,8 @@ model Students {
   guardian_address  String?
 
   Payment Payment[]
-  classId String
-  Classes Classes   @relation(fields: [classId], references: [id])
+  classId String?
+  Classes Classes?  @relation(fields: [classId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -167,8 +180,8 @@ model Subjects {
   id   String @id @default(uuid())
   name String @unique
 
-  classId String
-  Classes Classes @relation(fields: [classId], references: [id])
+  classId String?
+  Classes Classes? @relation(fields: [classId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
