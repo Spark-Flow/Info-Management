@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 
 const StudentPage = () => {
+  // TODO: Fetch student data, given the ID., implement API
   const { id } = useParams();
   return (
     <div>

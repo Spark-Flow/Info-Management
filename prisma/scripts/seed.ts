@@ -70,7 +70,6 @@ async function seedData() {
             name: subjectName,
           },
         });
-        console.log(existingSubject)
 
         // If the subject doesn't exist, create it
         if (!existingSubject) {

@@ -83,7 +83,7 @@ enum PaymentFrequency {
 }
 
 // Model for the academic session
-// This model will be assign to everything that is related to the academic year, like classes, students, teachers, etc. and will associate them to a certain year, like 2021-2022, add validation, and make sure to have only one active academic session at a given time, a session can be active if the current date is between the start and end date of the session. You can allow viewing of the previous academic sessions but only one session can be active at a time.
+// This model will be assign to everything that is related to the academic year, like Class, Student, Teacher, etc. and will associate them to a certain year, like 2021-2022, add validation, and make sure to have only one active academic session at a given time, a session can be active if the current date is between the start and end date of the session. You can allow viewing of the previous academic sessions but only one session can be active at a time.
 // TODO:
 model AcademicSession {
   id       String   @id @default(uuid())
@@ -95,9 +95,9 @@ model AcademicSession {
   updatedAt DateTime @updatedAt
 }
 
-// Model for Teachers
-// A Teacher can have multiple classes
-model Teachers {
+// Model for Teacher
+// A Teacher can have multiple Class
+model Teacher {
   id             String      @id @default(uuid())
   email          String
   teacher_number String      @unique
@@ -122,13 +122,15 @@ model Teachers {
   date_joined    DateTime
   date_resigned  DateTime?
 
-  ClassTeachers ClassTeachers[]
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model Students {
+// Model for Student
+// A student can only have one class
+// A student can have multiple payments
+
+model Student {
   id                String   @id @default(uuid())
   student_number    String   @unique
   first_name        String
@@ -153,53 +155,30 @@ model Students {
   guardian_number   String?
   guardian_address  String?
 
-  Payment Payment[]
-  classId String?
-  Classes Classes?  @relation(fields: [classId], references: [id])
+  Payments Payment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model Classes {
-  id   String    @id @default(uuid())
-  name ClassList @unique
-
-  Students            Students[]
-  ClassTeachers       ClassTeachers[]
+// Model for Class
+// TODO: Create junctions tables for all the many to many relationships within this
+model Class {
+  id                  String                @id @default(uuid())
+  name                String                @unique
+  classStudentsId     String
   PaymentFeeStructure PaymentFeeStructure[]
-  ClassSubjects       ClassSubjects[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model Subjects {
+model Subject {
   id   String @id @default(uuid())
   name String @unique
 
-  classSubjects ClassSubjects[]
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-model ClassSubjects {
-  classId   String
-  Classes   Classes  @relation(fields: [classId], references: [id])
-  subjectId String
-  Subjects  Subjects @relation(fields: [subjectId], references: [id])
-
-  @@id([classId, subjectId])
-}
-
-model ClassTeachers {
-  classId   String
-  Classes   Classes  @relation(fields: [classId], references: [id])
-  teacherId String
-  Teachers  Teachers @relation(fields: [teacherId], references: [id])
-
-  @@id([classId, teacherId])
 }
 
 model Payment {
@@ -210,7 +189,7 @@ model Payment {
   mode      ModeOfPayment
 
   studentId String
-  Student   Students @relation(fields: [studentId], references: [id])
+  Student   Student @relation(fields: [studentId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -231,7 +210,7 @@ model PaymentFee {
 model PaymentFeeStructure {
   id String @id @default(uuid())
 
-  PaymentFee PaymentFee[]
-  classId    String
-  Classes    Classes      @relation(fields: [classId], references: [id])
+  PaymentFees PaymentFee[]
+  classId     String
+  Class       Class        @relation(fields: [classId], references: [id])
 }
